@@ -28,6 +28,7 @@ def check_env(env: str) -> str:
 
 URL = check_env("ICS_URL")
 WEBHOOK_URL = check_env("WEBHOOK_URL")
+DELAY = int(os.environ.get("DELAY", 5))
 
 logs = logging.getLogger(__name__)
 logs.setLevel(logging.DEBUG)
@@ -175,7 +176,7 @@ def main():
         logs.error(f"An error occurred: {e}")
 
 
-schedule.every(5).minutes.do(main)
+schedule.every(DELAY).minutes.do(main)
 main()
 while 1:
     schedule.run_pending()
