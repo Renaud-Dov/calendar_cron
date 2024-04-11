@@ -17,6 +17,7 @@ from models import Event
 
 import logging
 import os
+import re
 
 
 def check_env(env: str) -> str:
@@ -28,8 +29,10 @@ def check_env(env: str) -> str:
 
 URL = check_env("ICS_URL")
 WEBHOOK_URL = check_env("WEBHOOK_URL")
+FILTER_REGEX = os.environ.get("FILTER_REGEX", None)
 DELAY = int(os.environ.get("DELAY", 5))
 
+# add stack trace to logs if error
 logs = logging.getLogger(__name__)
 logs.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(stream=stdout)
@@ -37,6 +40,7 @@ handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logs.addHandler(handler)
+
 
 
 @lru_cache()
@@ -176,6 +180,8 @@ def main():
         delete_events(session, events_to_delete)
     except Exception as e:
         logs.error(f"An error occurred: {e}")
+        # show stack trace in logs
+        logs.exception(e)
 
 
 schedule.every(DELAY).minutes.do(main)
