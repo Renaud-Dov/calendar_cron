@@ -164,6 +164,8 @@ def main():
         events = list(cal.events)
         # sort events by begin date
         events.sort(key=lambda e: e.begin.datetime)
+        if FILTER_REGEX:
+            events = [event for event in events if re.match(FILTER_REGEX, event.name)]
         session = Session(engine)
         for event in events:
             update_event(session, event)
