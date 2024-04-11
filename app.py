@@ -9,7 +9,7 @@ import requests
 from functools import lru_cache
 import time
 from ics import Calendar
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
 from engine import engine
@@ -28,6 +28,7 @@ def check_env(env: str) -> str:
 
 
 URL = check_env("ICS_URL")
+GROUP = check_env("GROUP")
 WEBHOOK_URL = check_env("WEBHOOK_URL")
 FILTER_REGEX = os.environ.get("FILTER_REGEX", None)
 DELAY = int(os.environ.get("DELAY", 5))
@@ -40,7 +41,6 @@ handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logs.addHandler(handler)
-
 
 
 @lru_cache()
@@ -68,6 +68,7 @@ def create_new_event(session: Session, event: ics.Event):
     event_model = Event(
         uid=str(event.uid),
         name=event.name,
+        group=GROUP,
         description=event.description,
         all_day=event.all_day,
         begin=event.begin.datetime,
@@ -163,6 +164,7 @@ def main():
         logs.info("Checking events")
         raw_ics = get_ics(URL, ttl_hash=get_ttl_hash())
         cal = Calendar(raw_ics)
+        logs.info("Events fetched")
 
         # print last 10 events from the calendar
         events = list(cal.events)
@@ -170,13 +172,22 @@ def main():
         events.sort(key=lambda e: e.begin.datetime)
         if FILTER_REGEX:
             events = [event for event in events if re.match(FILTER_REGEX, event.name)]
+        if len(events) == 0:
+            logs.info("No events found")
+            return
         session = Session(engine)
         for event in events:
             update_event(session, event)
 
         # check if there are events to delete
         events_uid = [str(event.uid) for event in events]
-        events_to_delete = list(session.execute(select(Event).where(Event.uid.notin_(events_uid))).scalars().all())
+        events_to_delete = list(session.execute(
+            select(Event).where(
+                and_(
+                    Event.group == GROUP,
+                    Event.uid.notin_(events_uid)
+                )
+            )).scalars().all())
         delete_events(session, events_to_delete)
     except Exception as e:
         logs.error(f"An error occurred: {e}")

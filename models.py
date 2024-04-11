@@ -12,6 +12,7 @@ class Event(Base):
     __tablename__ = "events"
 
     uid: Mapped[str] = mapped_column(primary_key=True)
+    group: Mapped[str] = mapped_column()
     name: Mapped[str] = mapped_column()
     description: Mapped[Optional[str]] = mapped_column(default=None)
     all_day: Mapped[bool] = mapped_column()
