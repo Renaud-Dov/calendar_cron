@@ -29,7 +29,7 @@ def check_env(env: str) -> str:
 
 URL = check_env("ICS_URL")
 GROUP = check_env("GROUP")
-WEBHOOK_URL = check_env("WEBHOOK_URL")
+WEBHOOK_URLS = check_env("WEBHOOK_URLS").split(",")
 FILTER_REGEX = os.environ.get("FILTER_REGEX", None)
 DELAY = int(os.environ.get("DELAY", 5))
 
@@ -59,9 +59,14 @@ def get_ttl_hash(seconds=3600):
 
 
 def send_webhook_message(embed: discord.Embed):
-    webhook = discord.SyncWebhook.from_url(WEBHOOK_URL)
-    logs.debug("Sending webhook message")
-    webhook.send(embed=embed)
+    for WEBHOOK_URL in WEBHOOK_URLS:
+        webhook = discord.SyncWebhook.from_url(WEBHOOK_URL)
+        logs.debug("Sending webhook message")
+        webhook.send(embed=embed)
+
+
+def datetime_to_timestamp(dt: datetime.datetime) -> str:
+    return "<t:{}:f>".format(int(dt.timestamp()))
 
 
 def create_new_event(session: Session, event: ics.Event):
@@ -84,8 +89,8 @@ def create_new_event(session: Session, event: ics.Event):
                           color=discord.Color.green())
     embed.add_field(name="Description", value=event.description)
     embed.add_field(name="All day", value=event.all_day)
-    embed.add_field(name="Begin", value=event.begin.datetime.strftime("%Y-%m-%d %H:%M:%S"))
-    embed.add_field(name="End", value=event.end.datetime.strftime("%Y-%m-%d %H:%M:%S"))
+    embed.add_field(name="Begin", value=datetime_to_timestamp(event.begin.datetime))
+    embed.add_field(name="End", value=datetime_to_timestamp(event.end.datetime))
     embed.add_field(name="URL", value=event.url)
     embed.add_field(name="Location", value=event.location)
 
@@ -113,12 +118,12 @@ def get_diff(event: ics.Event, event_model: Event):
 
 def str_datetime(dt: str | datetime.datetime) -> str:
     if isinstance(dt, datetime.datetime):
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
+        return datetime_to_timestamp(dt)
     return dt
 
 
 def update_event(session: Session, event: ics.Event):
-    logs.info(f"Ckecking event {event.name}")
+    logs.info(f"Checking event {event.name}")
     event_model = session.execute(select(Event).where(Event.uid == str(event.uid))).scalar_one_or_none()
     if not event_model:
         create_new_event(session, event)
