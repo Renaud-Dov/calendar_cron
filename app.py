@@ -1,13 +1,10 @@
 import datetime
 from sys import stdout
 
-import schedule
 
 import discord
 import ics
 import requests
-from functools import lru_cache
-import time
 from ics import Calendar
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
@@ -31,7 +28,6 @@ URL = check_env("ICS_URL")
 GROUP = check_env("GROUP")
 WEBHOOK_URLS = check_env("WEBHOOK_URLS").split(",")
 FILTER_REGEX = os.environ.get("FILTER_REGEX", None)
-DELAY = int(os.environ.get("DELAY", 5))
 
 # add stack trace to logs if error
 logs = logging.getLogger(__name__)
@@ -43,20 +39,12 @@ handler.setFormatter(formatter)
 logs.addHandler(handler)
 
 
-@lru_cache()
-def get_ics(url, ttl_hash=None):
-    del ttl_hash  # to emphasize we don't use it and to shut pylint up
+def get_ics(url):
     logs.info("Fetching ICS")
     r = requests.get(url)
-    print("Initial encoding: ", r.encoding)
+    logs.debug("Initial encoding: ", r.encoding)
     r.encoding = "utf-8"
     return r.text
-
-
-def get_ttl_hash(seconds=3600):
-    """Return the same value withing `seconds` time period"""
-    return round(time.time() / seconds)
-
 
 def send_webhook_message(embed: discord.Embed):
     for WEBHOOK_URL in WEBHOOK_URLS:
@@ -166,8 +154,8 @@ def delete_events(session: Session, events_to_delete: list[Event]):
 
 def main():
     try:
-        logs.info("Checking events")
-        raw_ics = get_ics(URL, ttl_hash=get_ttl_hash())
+        logs.info(f"Checking events for group {GROUP}")
+        raw_ics = get_ics(URL)
         cal = Calendar(raw_ics)
         logs.info("Events fetched")
 
@@ -200,8 +188,4 @@ def main():
         logs.exception(e)
 
 
-schedule.every(DELAY).minutes.do(main)
 main()
-while 1:
-    schedule.run_pending()
-    time.sleep(1)

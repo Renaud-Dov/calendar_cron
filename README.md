@@ -13,6 +13,8 @@ pip install -r requirements.txt
 
 ```bash
 ICS_URL="https://path/to/your/calendar.ics" \
-WEBHOOK_URL="https://discord.com/api/webhooks/your/webhook" \
+WEBHOOK_URLS="https://discord.com/api/webhooks/your/webhook" \
 python app.py
 ```
+
+> Add , between each webhook url
