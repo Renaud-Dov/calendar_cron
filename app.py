@@ -35,7 +35,7 @@ DELAY = int(os.environ.get("DELAY", 5))
 
 # add stack trace to logs if error
 logs = logging.getLogger(__name__)
-logs.setLevel(logging.DEBUG)
+logs.setLevel(logging.INFO)
 handler = logging.StreamHandler(stream=stdout)
 handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
