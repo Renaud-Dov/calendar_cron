@@ -123,7 +123,7 @@ def str_datetime(dt: str | datetime.datetime) -> str:
 
 
 def update_event(session: Session, event: ics.Event):
-    logs.info(f"Checking event {event.name}")
+    logs.debug(f"Checking event {event.name}")
     event_model = session.execute(select(Event).where(Event.uid == str(event.uid))).scalar_one_or_none()
     if not event_model:
         create_new_event(session, event)
