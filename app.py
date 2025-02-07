@@ -182,6 +182,7 @@ def main():
                 )
             )).scalars().all())
         delete_events(session, events_to_delete)
+        logs.info("Events checked")
     except Exception as e:
         logs.error(f"An error occurred: {e}")
         # show stack trace in logs
